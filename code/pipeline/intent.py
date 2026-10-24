@@ -77,9 +77,23 @@ NON_DELETION_PATTERNS = [
 SCOPE_PATTERNS = [r"\baccount\b", r"\bprofile\b", r"\brecords?\b", r"\bdata\b",
                   r"cuenta", r"compte", r"conta", r"アカウント", r"계정"]
 
+# Sentence-scoped negation.  Several languages put the negator after the verb
+# ("Bitte löschen Sie mein Konto nicht"), so a look-behind window is not enough:
+# if the sentence that carries a destructive verb also carries a negator, the
+# request is withholding authorisation.  "no longer" is excluded because it is
+# itself an erasure statement ("the account no longer exists").
+NEGATION_PATTERNS = [
+    r"\bnot\b", r"\bno\b(?!\s+longer)", r"\bnever\b", r"\bdo(?:n't| not)\b",
+    r"\bca(?:n't|nnot)\b", r"\bwon't\b", r"\bnicht\b", r"\bkein\w*\b",
+    r"\bn[ãa]o\b", r"\bnunca\b", r"\bne\b", r"\bpas\b", r"\bjamais\b",
+    r"\bniemals\b", r"\bsin\b",
+]
+_SENTENCE_SPLIT = re.compile(r"(?<=[.!?。！？])\s+|\n+")
+
 _COMPILED_DESTRUCTIVE: List[Pattern] = [re.compile(p, re.IGNORECASE) for p in DESTRUCTIVE_PATTERNS]
 _COMPILED_NON: List[Pattern] = [re.compile(p, re.IGNORECASE | re.DOTALL) for p in NON_DELETION_PATTERNS]
 _COMPILED_SCOPE: List[Pattern] = [re.compile(p, re.IGNORECASE) for p in SCOPE_PATTERNS]
+_COMPILED_NEGATION: List[Pattern] = [re.compile(p, re.IGNORECASE) for p in NEGATION_PATTERNS]
 
 
 @dataclass(frozen=True)
@@ -99,10 +113,37 @@ def _hits(patterns: List[Pattern], text: str) -> Tuple[str, ...]:
     return tuple(sorted(set(found)))
 
 
+_NEGATION_WINDOW = 40
+_CLAUSE_SPLIT = re.compile(r"[.;:!?,\n]+|\band\b", re.IGNORECASE)
+
+
+def _negated_requests(text: str) -> Tuple[str, ...]:
+    """Destructive verbs that sit next to a negator.
+
+    Clause proximity, not sentence scope.  "löschen Sie mein Konto nicht" and
+    "ne supprimez pas" postfix the negator, so a look-behind is not enough;
+    but templates such as "confirm that the profile is gone and that other
+    records cannot identify me" ask for erasure while a later clause merely
+    contains a negator.  Requiring verb and negator inside one clause keeps the
+    first two and rejects the third.
+    """
+    found: List[str] = []
+    for clause in _CLAUSE_SPLIT.split(text):
+        if not clause:
+            continue
+        destructive = [m for p in _COMPILED_DESTRUCTIVE for m in p.finditer(clause)]
+        if not destructive:
+            continue
+        if any(p.search(clause) for p in _COMPILED_NEGATION):
+            found.append(clause.strip()[:60])
+    return tuple(sorted(set(found)))
+
+
 def classify(text: str) -> Intent:
     raw = unicodedata.normalize("NFKC", text or "")
     destructive = _hits(_COMPILED_DESTRUCTIVE, raw)
-    non_deletion = _hits(_COMPILED_NON, raw)
+    non_deletion = tuple(sorted(set(_hits(_COMPILED_NON, raw)
+                                    + _negated_requests(raw))))
 
     if non_deletion:
         return Intent(False, destructive, non_deletion, "explicit_non_deletion_marker")

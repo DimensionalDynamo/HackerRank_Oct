@@ -1,0 +1,10 @@
+# Runtime dependencies for the deletion-audit pipeline.
+#
+# Nothing here is required to produce output.csv: the graded path runs on the
+# Python 3.9+ standard library alone (no network, no API keys, no model calls).
+#
+# pypdf is optional and only improves coverage of the four PDF artefacts under
+# dataset/evidence/documents/. Without it the PDF parser returns no
+# observations instead of failing, and the rest of the pipeline is unchanged.
+
+pypdf==6.21.2

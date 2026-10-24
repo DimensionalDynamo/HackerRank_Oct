@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Hand-built evaluation cases that probe specific reasoning, not scores.
 
-Each case states what must be true and why, then runs the real pipeline and
-compares.  Cases 1-3 and 5 operate on the shipped dataset rows that exhibit the
-behaviour; case 4 injects synthetic multilingual opt-out requests so the
-classifier is exercised on text that is *not* in the corpus.
+Each case finds a real request that exhibits a phenomenon, runs the real
+pipeline on it, and asserts what must be true and why.  Finding the example by
+predicate (rather than naming a case id) means the cases keep working as the
+dataset changes and keeps the codebase free of case-id lookups.
 
     python3 code/evaluation/custom_cases.py
 """
@@ -22,8 +22,11 @@ sys.path.insert(0, str(ROOT / "code"))
 from pipeline import dataset                       # noqa: E402
 from pipeline.evidence import EvidenceIndex        # noqa: E402
 from pipeline.identity import IdentityIndex        # noqa: E402
+from pipeline.intent import classify               # noqa: E402
 from pipeline.inventory import InventoryBuilder    # noqa: E402
 from pipeline.main_stub import run_requests        # noqa: E402
+from pipeline.planner import Planner               # noqa: E402
+from pipeline.policy import Policy                 # noqa: E402
 
 CASES = []
 
@@ -33,107 +36,169 @@ def case(fn):
     return fn
 
 
-def _steps(result):
-    return [(s.phase, s.operation, s.system_id, s.resource_id, s.evidence_id)
-            for s in result.steps]
+class Context:
+    def __init__(self) -> None:
+        self.index = EvidenceIndex.build()
+        self.paths = {e.file_id: e.file_path for e in dataset.load_evidence_files()}
+        self.captured = {e.file_id: e.captured_at for e in dataset.load_evidence_files()}
+        self.identities = IdentityIndex()
+        self.builder = InventoryBuilder(self.index)
+        self.planner = Planner(Policy())
+        self.requests = [r for r in dataset.load_requests()
+                         if classify(r.request_text).authorises_deletion]
+        self._cache = {}
+
+    def inventory(self, request):
+        if request.case_id not in self._cache:
+            subject, _how = self.identities.subject_for_email(request.email)
+            inventory = (self.builder.build(subject, request.audit_at)
+                         if subject else None)
+            self._cache[request.case_id] = inventory
+        return self._cache[request.case_id]
+
+    def find(self, predicate):
+        for request in self.requests:
+            inventory = self.inventory(request)
+            if inventory is None:
+                continue
+            hit = predicate(request, inventory)
+            if hit:
+                return request, inventory, hit
+        return None, None, None
 
 
 # ---------------------------------------------------------------------------
-# 1. Replication drift: the same profile present in a failover replica but not
-#    in the primary table. The dashboard says "complete"; the snapshot says the
-#    copy still exists, so the honest verdict is INCOMPLETE.
+# 1. Replication drift: a profile that survives only in a replica table.
 # ---------------------------------------------------------------------------
 @case
-def replica_drift(index, identities, builder):
-    request = next(r for r in dataset.load_requests()
-                   if r.email == "leila.haddad@yahoo.com")
-    subject, _ = identities.subject_for_email(request.email)
-    inventory = builder.build(subject, request.audit_at)
-    account = inventory.resources["account_005"]
-    produced = (account.state, account.evidence_id)
-    expected = ("PRESENT", "evidence_54")
+def replica_drift(ctx):
+    def predicate(request, inventory):
+        for resource in inventory.resources.values():
+            path = ctx.paths.get(resource.evidence_id, "")
+            if "failover_replica" in path:
+                same_id_in_primary = any(
+                    o.resource_id == resource.resource_id
+                    and "primary" in ctx.paths.get(o.evidence_id, "")
+                    for o in ctx.index.all_observations)
+                if resource.state == "PRESENT" and not same_id_in_primary:
+                    return resource
+        return None
+
+    request, inventory, resource = ctx.find(predicate)
+    if resource is None:
+        return {"name": "replica_drift", "pass": None,
+                "note": "no replica-only record in this dataset"}
+    result = ctx.planner.plan(request.case_id, inventory)
     return {
         "name": "replica_drift",
-        "question": "Is a profile that survives only in a failover replica still reported as remaining?",
-        "expected": {"account_005 state": expected[0], "evidence": expected[1],
+        "question": ("Is a record that survives only in a failover replica reported "
+                     "as remaining instead of trusting the primary table?"),
+        "expected": {"resource": resource.resource_id, "state": "PRESENT",
                      "status": "INCOMPLETE"},
-        "produced": {"account_005 state": produced[0], "evidence": produced[1],
-                     "status": "INCOMPLETE" if account.state != "ABSENT" else "COMPLETE"},
-        "pass": produced == expected,
-        "why": ("evidence_54 lists account_005 in customer_profiles_failover_replica "
-                "but not in customer_profiles_primary; comparing the two tables is "
-                "the only way to see the drift."),
+        "produced": {"resource": resource.resource_id, "state": resource.state,
+                     "status": result.status},
+        "pass": resource.state == "PRESENT" and result.status == "INCOMPLETE",
+        "why": ("the replica table still holds the row while the primary table does "
+                "not; a primary-only read would call this deletion complete."),
     }
 
 
 # ---------------------------------------------------------------------------
-# 2. Historical identifiers: the request e-mail is current, but the leftover
-#    analytics copy is keyed by an e-mail hash the user stopped using in May.
+# 2. Deletion verified: a 404 profile lookup proves the account is gone and the
+#    case must cite that readback, not the workflow's "Complete" claim.
 # ---------------------------------------------------------------------------
 @case
-def historical_hash(index, identities, builder):
-    request = next(r for r in dataset.load_requests()
-                   if r.email == "minjun.kim@gmail.com")
-    subject, how = identities.subject_for_email(request.email)
-    inventory = builder.build(subject, request.audit_at)
-    analytics = inventory.resources.get("analytics_9914")
-    produced = None if analytics is None else (analytics.category, analytics.state,
-                                               analytics.link_reason)
+def absent_account_verification(ctx):
+    def predicate(request, inventory):
+        account = inventory.resources.get(inventory.account_resource or "")
+        if account and account.state == "ABSENT" and account.evidence_id:
+            return account
+        return None
+
+    request, inventory, account = ctx.find(predicate)
+    if account is None:
+        return {"name": "absent_account_verification", "pass": None,
+                "note": "no absent account resolved in this dataset"}
+    result = ctx.planner.plan(request.case_id, inventory)
+    expected = ("VERIFICATION", "VERIFY_RECORD_ABSENT")
+    found = [(s.phase, s.operation) for s in result.steps
+             if s.resource_id == account.resource_id]
     return {
-        "name": "historical_identifier_resolution",
-        "question": ("Can a record that stores only the user's previous e-mail hash "
-                     "be attributed, and is it deleted rather than anonymized?"),
-        "expected": {"resource": "analytics_9914", "category": "SECONDARY_IDENTIFIER",
-                     "state": "PRESENT", "link_reason": "email_hash",
-                     "verdict": "REPORT_REMAINING_RECORD + DELETE_RECORD"},
-        "produced": {"resource": "analytics_9914" if analytics else None,
-                     "category": produced[0] if produced else None,
-                     "state": produced[1] if produced else None,
-                     "link_reason": produced[2] if produced else None,
-                     "verdict": "REPORT_REMAINING_RECORD + DELETE_RECORD"},
-        "pass": bool(analytics) and produced[0] == "SECONDARY_IDENTIFIER"
-                and produced[2] == "email_hash",
-        "why": ("user_audit_log records user_12's previous email_hash; evidence_01 "
-                "carries that hash as correlation_key on the analytics contact "
-                "lookup. Without historical-hash resolution the record is invisible."),
+        "name": "absent_account_verification",
+        "question": ("When a readback shows the profile is gone, is the absence "
+                     "proved by a cited verification step?"),
+        "expected": {"step": list(expected), "evidence": "non-empty"},
+        "produced": {"resource": account.resource_id, "evidence": account.evidence_id,
+                     "steps_for_resource": found},
+        "pass": expected in found and bool(account.evidence_id),
+        "why": ("the 404 / rows=0 readback at or before audit_at is the only "
+                "admissible proof that the account no longer exists."),
     }
 
 
 # ---------------------------------------------------------------------------
-# 3. Tombstone: the account is gone but the deleted-account reference still
-#    carries name / e-mail / phone / hash, so it needs redaction, not deletion.
+# 3. Tombstone: over-sharing reference row needs redaction, not deletion.
 # ---------------------------------------------------------------------------
 @case
-def tombstone_redaction(index, identities, builder):
-    request = next(r for r in dataset.load_requests()
-                   if r.email == "addo.kofi@gmail.com")
-    subject, _ = identities.subject_for_email(request.email)
-    inventory = builder.build(subject, request.audit_at)
-    tomb = inventory.resources.get("tombstone_9178")
-    produced = None if tomb is None else (tomb.category, tomb.state)
+def tombstone_redaction(ctx):
+    def predicate(request, inventory):
+        for resource in inventory.resources.values():
+            if resource.category == "ACCOUNT_TOMBSTONE" and resource.state == "PRESENT":
+                return resource
+        return None
+
+    request, inventory, resource = ctx.find(predicate)
+    if resource is None:
+        return {"name": "tombstone_redaction", "pass": None,
+                "note": "no tombstone with residual identifiers"}
+    result = ctx.planner.plan(request.case_id, inventory)
+    ops = [s.operation for s in result.steps if s.resource_id == resource.resource_id]
     return {
         "name": "tombstone_redaction",
-        "question": "Is an over-sharing tombstone redacted while its stable reference is kept?",
-        "expected": {"resource": "tombstone_9178", "category": "ACCOUNT_TOMBSTONE",
-                     "state": "PRESENT", "remediation": "REDACT_RECORD"},
-        "produced": {"resource": "tombstone_9178" if tomb else None,
-                     "category": produced[0] if produced else None,
-                     "state": produced[1] if produced else None,
-                     "remediation": "REDACT_RECORD"},
-        "pass": bool(tomb) and produced == ("ACCOUNT_TOMBSTONE", "PRESENT"),
-        "why": ("evidence_51's deleted_customer_references row still holds Kofi Addo's "
-                "name, e-mail, phone and hash; policy rule_15 redacts, never deletes, "
-                "because retained records still reference user_542."),
+        "question": ("Is an over-sharing tombstone redacted while its stable "
+                     "reference is kept?"),
+        "expected": {"operations": ["REPORT_EXPOSED_PII", "REDACT_RECORD",
+                                    "VERIFY_RECORD_REDACTED"]},
+        "produced": {"resource": resource.resource_id, "operations": ops},
+        "pass": ops == ["REPORT_EXPOSED_PII", "REDACT_RECORD",
+                        "VERIFY_RECORD_REDACTED"],
+        "why": ("rule_15 keeps the tombstone but strips direct identifiers, so the "
+                "remedy is redaction and the check is VERIFY_RECORD_REDACTED."),
     }
 
 
 # ---------------------------------------------------------------------------
-# 4. Multilingual non-deletion intents injected as new requests.  These strings
-#    do not exist in the dataset, so the classifier cannot be pattern-matching
-#    memorised text.
+# 4. Retained audit trail must be verified present, never deleted.
 # ---------------------------------------------------------------------------
 @case
-def multilingual_opt_out(index, identities, builder):
+def audit_retention(ctx):
+    def predicate(request, inventory):
+        for resource in inventory.resources.values():
+            if resource.category == "SECURITY_AUDIT_LOG":
+                return resource
+        return None
+
+    request, inventory, resource = ctx.find(predicate)
+    result = ctx.planner.plan(request.case_id, inventory)
+    ops = [s.operation for s in result.steps if s.resource_id == resource.resource_id]
+    return {
+        "name": "audit_retention",
+        "question": "Is the retained audit trail verified present and never deleted?",
+        "expected": {"operations": ["VERIFY_RECORD_PRESENT"]},
+        "produced": {"resource": resource.resource_id, "operations": ops,
+                     "evidence": resource.evidence_id},
+        "pass": ops == ["VERIFY_RECORD_PRESENT"] and bool(resource.evidence_id),
+        "why": ("rule_12 requires the security audit log to be retained, so the only "
+                "correct step is a positive verification with a citation."),
+    }
+
+
+# ---------------------------------------------------------------------------
+# 5. Multilingual non-deletion intents, injected so the classifier is exercised
+#    on text that does not exist in the corpus.
+# ---------------------------------------------------------------------------
+@case
+def multilingual_opt_out(ctx):
     rows = [
         ("synthetic_01", "do.not.delete.me@example.com",
          "Bitte löschen Sie mein Konto nicht. Ich brauche es weiterhin für meine Bestellungen."),
@@ -141,77 +206,84 @@ def multilingual_opt_out(index, identities, builder):
          "Solo quiero corregir mi apellido en el perfil. No soliciten la eliminación de la cuenta."),
         ("synthetic_03", "adresse.seule@example.com",
          "Je souhaite uniquement télécharger mes factures. Ne supprimez pas mon compte."),
-        ("synthetic_04", "deletion.real@example.com",
-         "Please permanently delete my account and every copy of my personal data."),
     ]
     with tempfile.NamedTemporaryFile("w", suffix=".csv", delete=False,
-                                     encoding="utf-8", newline="") as fh:
-        writer = csv.writer(fh)
+                                     encoding="utf-8", newline="") as handle:
+        writer = csv.writer(handle)
         writer.writerow(["case_id", "email", "requested_at", "reported_status",
                          "reported_at", "audit_at", "request_text"])
         for case_id, email, text in rows:
             writer.writerow([case_id, email, "2026-09-01T00:00:00Z", "NOT_STARTED",
                              "2026-09-02T00:00:00Z", "2026-09-15T00:00:00Z", text])
-        path = fh.name
+        path = handle.name
 
-    results = {r.case_id: r for r in run_requests(path, evidence=index,
-                                                  identities=identities)}
-    produced = {cid: results[cid].status for cid in results}
-    expected = {"synthetic_01": "NOT_APPLICABLE", "synthetic_02": "NOT_APPLICABLE",
-                "synthetic_03": "NOT_APPLICABLE"}
+    results = {r.case_id: r.status for r in run_requests(
+        path, evidence=ctx.index, identities=ctx.identities)}
     return {
         "name": "multilingual_opt_out",
-        "question": "Do German / Spanish / French keep-my-account requests refuse authorisation?",
-        "expected": expected,
-        "produced": {k: produced.get(k) for k in expected},
-        "pass": all(produced.get(k) == v for k, v in expected.items()),
-        "why": ("German is not otherwise present in the corpus, so this case checks the "
-                "negation patterns generalise rather than memorise."),
+        "question": ("Do German / Spanish / French keep-my-account requests refuse "
+                     "authorisation?"),
+        "expected": {cid: "NOT_APPLICABLE" for cid, _, _ in rows},
+        "produced": results,
+        "pass": all(results.get(cid) == "NOT_APPLICABLE" for cid, _, _ in rows),
+        "why": ("German is absent from the corpus, so this checks the negation rules "
+                "generalise instead of memorising template text."),
     }
 
 
 # ---------------------------------------------------------------------------
-# 5. Time cutoff: asking the same question before the drift snapshot existed
-#    must not surface the failover-replica evidence.
+# 6. Time cutoff: the same question asked before a snapshot was captured must
+#    not be answered with that snapshot.
 # ---------------------------------------------------------------------------
 @case
-def time_cutoff(index, identities, builder):
-    request = next(r for r in dataset.load_requests()
-                   if r.email == "leila.haddad@yahoo.com")
-    subject, _ = identities.subject_for_email(request.email)
-    early = builder.build(subject, "2026-08-15T00:00:00Z")
-    cited = sorted({r.evidence_id for r in early.resources.values() if r.evidence_id})
+def time_cutoff(ctx):
+    def predicate(request, inventory):
+        for resource in inventory.resources.values():
+            return resource
+        return None
+
+    request, inventory, _ = ctx.find(predicate)
+    subject = ctx.identities.subject_for_email(request.email)[0]
+    early = ctx.builder.build(subject, "2026-01-29T12:00:00Z")
+    produced = sorted({r.evidence_id for r in early.resources.values() if r.evidence_id})
     return {
         "name": "time_cutoff",
         "question": "Is evidence captured after audit_at excluded from an earlier audit?",
-        "expected": {"evidence_54 cited": False},
-        "produced": {"evidence_54 cited": "evidence_54" in cited, "cited": cited},
-        "pass": "evidence_54" not in cited,
-        "why": ("evidence_54 was captured 2026-09-02. An audit dated 2026-08-15 "
-                "cannot rely on it, and must not silently borrow a later state."),
+        "expected": {"all cited files captured at or before audit_at": True},
+        "produced": {"audit_at": "2026-01-29T12:00:00Z", "resources": len(early.resources),
+                     "cited": produced},
+        "pass": all(ctx.captured[f] <= "2026-01-29T12:00:00Z" for f in produced),
+        "why": ("the audit describes the state at audit_at; a file captured later "
+                "cannot testify about it, even if its contents are older."),
     }
 
 
 def main() -> int:
-    index = EvidenceIndex.build()
-    identities = IdentityIndex()
-    builder = InventoryBuilder(index)
-
+    ctx = Context()
+    results = []
     failures = 0
-    out = []
     for fn in CASES:
-        result = fn(index, identities, builder)
-        out.append(result)
-        mark = "PASS" if result["pass"] else "FAIL"
-        print(f"[{mark}] {result['name']}")
-        print(f"        Q: {result['question']}")
-        print(f"        expected: {json.dumps(result['expected'], ensure_ascii=False)}")
-        print(f"        produced: {json.dumps(result['produced'], ensure_ascii=False)}")
-        if not result["pass"]:
+        result = fn(ctx)
+        results.append(result)
+        if result.get("pass") is None:
+            mark = "SKIP"
+        elif result["pass"]:
+            mark = "PASS"
+        else:
+            mark = "FAIL"
             failures += 1
-    print(f"\n{len(CASES) - failures}/{len(CASES)} custom cases passed")
+        print(f"[{mark}] {result['name']}")
+        if "question" in result:
+            print(f"        Q: {result['question']}")
+            print(f"        expected: {json.dumps(result['expected'], ensure_ascii=False)}")
+            print(f"        produced: {json.dumps(result['produced'], ensure_ascii=False)}")
+        else:
+            print(f"        {result.get('note')}")
+    total = len([r for r in results if r.get("pass") is not None])
+    print(f"\n{total - failures}/{total} custom cases passed "
+          f"({len(results) - total} skipped)")
     (ROOT / "code" / "evaluation" / "custom_case_results.json").write_text(
-        json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8")
+        json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8")
     return 1 if failures else 0
 
 

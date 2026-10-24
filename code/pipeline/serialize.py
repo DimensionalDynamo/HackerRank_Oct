@@ -11,12 +11,26 @@ from .model import (
 )
 
 HEADER = ["case_id", "deletion_status", "steps_json"]
+
+
+def case_sort_key(case_id: str):
+    """Order ``case_N`` numerically, not lexicographically.
+
+    The specification says rows are sorted by ``case_id``; the request file
+    itself runs case_33 … case_550, so 100 must follow 99 rather than lead the
+    file.  A trailing integer is compared numerically, anything else falls back
+    to the plain string so unknown ids still order deterministically.
+    """
+    prefix, _, digits = case_id.rpartition("_")
+    if digits.isdigit():
+        return (prefix, 0, int(digits), "")
+    return (case_id, 1, 0, case_id)
 ALLOWED_STATUS = {"COMPLETE", "INCOMPLETE", "NOT_APPLICABLE"}
 ALLOWED_STATES = set(STATE_OF_OPERATION.values())
 
 
 def write_output(path: Path, results: Sequence[CaseResult]) -> None:
-    ordered = sorted(results, key=lambda r: r.case_id)
+    ordered = sorted(results, key=lambda r: case_sort_key(r.case_id))
     with path.open("w", newline="", encoding="utf-8") as fh:
         writer = csv.DictWriter(fh, fieldnames=HEADER, lineterminator="\n")
         writer.writeheader()

@@ -176,8 +176,15 @@ class EvidenceIndex:
         return [o for o in self.links if self._usable(o, audit_at)]
 
     def coverages_at(self, audit_at: str, category: str) -> List[Coverage]:
+        """Snapshots inside the audit window that cover ``category``.
+
+        Both gates apply: the snapshot must describe a state at or before
+        ``audit_at`` *and* the artefact itself must have been captured by then,
+        otherwise a later export could testify about an earlier audit.
+        """
         return [c for c in self.coverages
-                if c.observed_at <= audit_at and c.category == category]
+                if c.observed_at <= audit_at and c.category == category
+                and self.file_captured_at.get(c.evidence_id, "") <= audit_at]
 
     def treatment_for(self, resource_id: str, audit_at: str) -> Optional[TreatmentHint]:
         hints = [h for h in self.treatments.get(resource_id, ()) if h.event_time <= audit_at]

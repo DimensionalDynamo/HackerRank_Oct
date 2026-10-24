@@ -255,6 +255,12 @@ class SerializerTests(unittest.TestCase):
         problems = serialize.validate([bad], ["case_00"])
         self.assertTrue(any("complete_without_verification" in p for p in problems))
 
+    def test_case_ids_sort_numerically(self):
+        from pipeline.serialize import case_sort_key
+        ids = ["case_100", "case_33", "case_9", "case_550"]
+        self.assertEqual(sorted(ids, key=case_sort_key),
+                         ["case_9", "case_33", "case_100", "case_550"])
+
     def test_not_applicable_must_be_empty(self):
         step = Step(1, "VERIFICATION", "account_service", "account_1",
                     "VERIFY_RECORD_ABSENT", "ABSENT", "evidence_01")

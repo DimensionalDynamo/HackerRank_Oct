@@ -1,0 +1,250 @@
+{
+  "_comment": [
+    "Hand transcription of the eleven console screenshots in dataset/evidence/images.",
+    "No OCR engine is available in the runtime, so each screenshot was read visually",
+    "and only the on-screen facts are recorded here: subject reference, e-mail, phone,",
+    "the resource id shown in the panel header/row, the record type and the state widget.",
+    "Keys are the SHA-256 of the image file; a changed image therefore yields no facts",
+    "instead of silently wrong ones."
+  ],
+  "d5c32ca5b6e1a2b4bbe9f5d41835ef1fd5d4f7061dab9067a4f9f88cea3c1861": {
+    "file": "account_admin_console_20260926.png",
+    "kind": "admin_console",
+    "facts": [
+      {
+        "resource_id": "account_5762",
+        "system": "account_service",
+        "category": "USER_PROFILE",
+        "state": "PRESENT",
+        "refs": ["user_11"],
+        "emails": ["haruka.s1838@zoho.com"],
+        "phones": ["+81 90 7610 2507"],
+        "names": ["Haruka Sato"]
+      },
+      {
+        "resource_id": "support_9538",
+        "system": "support_platform",
+        "category": "SUPPORT_MESSAGE",
+        "state": "LINK",
+        "refs": ["user_11"],
+        "emails": ["haruka.s1838@zoho.com"],
+        "names": ["Haruka Sato"]
+      }
+    ]
+  },
+  "4e4cb259bc2010b622b0c53fe5872258f994fefc23452a83bb27473758693484": {
+    "file": "analytics_profile_view_20260713.png",
+    "kind": "analytics_console",
+    "facts": [
+      {
+        "resource_id": "analytics_7438",
+        "system": "analytics_platform",
+        "category": "ANALYTICS_PROFILE",
+        "state": "PRESENT",
+        "refs": ["user_20"],
+        "emails": ["darwish.omar@icloud.com"],
+        "names": ["Omar Darwish"]
+      }
+    ]
+  },
+  "2c246aa5843bec609b9ddfdf1154cd81e0fd61996f83954735e9856e48c18bf3": {
+    "file": "backup_restore_console_20260429.png",
+    "kind": "backup_console",
+    "facts": [
+      {
+        "resource_id": "backup_9291",
+        "system": "backup_service",
+        "category": "BACKUP_ARCHIVE",
+        "state": "RESTORE_ALLOWED",
+        "emails": ["bluepeakco@outlook.com"]
+      },
+      {
+        "resource_id": "backup_9288",
+        "system": "backup_service",
+        "category": "BACKUP_ARCHIVE",
+        "state": "RESTORE_ALLOWED",
+        "emails": ["miller.logistics@company.com"]
+      },
+      {
+        "resource_id": "backup_9287",
+        "system": "backup_service",
+        "category": "BACKUP_ARCHIVE",
+        "state": "RESTORE_ALLOWED",
+        "emails": ["areed1433@gmail.com"]
+      },
+      {
+        "resource_id": "backup_9286",
+        "system": "backup_service",
+        "category": "BACKUP_ARCHIVE",
+        "state": "RESTORE_ALLOWED",
+        "emails": ["summit-retail@company.com"]
+      }
+    ]
+  },
+  "e81fabc93ea1b5f4c918d934cdb2bea05d61737adfcc29f281494f5d8ec46355": {
+    "file": "connector_management_console_20260807.png",
+    "kind": "integration_console",
+    "facts": [
+      {
+        "resource_id": "data_flow_1121",
+        "system": "integration_service",
+        "category": "DATA_FLOW",
+        "state": "FLOW_ACTIVE",
+        "emails": ["jain.aditi@gmail.com"]
+      },
+      {
+        "resource_id": "data_flow_9846",
+        "system": "integration_service",
+        "category": "DATA_FLOW",
+        "state": "FLOW_ACTIVE",
+        "emails": ["lucia-torres@gmail.com"]
+      }
+    ]
+  },
+  "18b95c1bd8b8956e40216df935498a9f3c181ea2a69b5cd6d3c0841a816d5557": {
+    "file": "customer_export_console_20260618.png",
+    "kind": "export_console",
+    "facts": [
+      {
+        "resource_id": "export_1261",
+        "system": "export_service",
+        "category": "USER_EXPORT",
+        "state": "PRESENT",
+        "emails": ["marcus.lee@northstar.shop"]
+      },
+      {
+        "resource_id": "export_1260",
+        "system": "export_service",
+        "category": "USER_EXPORT",
+        "state": "PRESENT",
+        "emails": ["ingrid.dahl@outlook.com"]
+      },
+      {
+        "resource_id": "export_1259",
+        "system": "export_service",
+        "category": "USER_EXPORT",
+        "state": "PRESENT",
+        "emails": ["sara.kim@northstar.shop"]
+      },
+      {
+        "resource_id": "export_1258",
+        "system": "export_service",
+        "category": "USER_EXPORT",
+        "state": "PRESENT",
+        "emails": ["daniel.park@northstar.shop"]
+      }
+    ]
+  },
+  "68c28a72afd6ed184d5990d15c543f8a516face204f0360f732755a8a63c28be": {
+    "file": "deleted_account_reference_20260310.png",
+    "kind": "identity_console",
+    "facts": [
+      {
+        "resource_id": "user_17",
+        "system": "identity_service",
+        "category": "ACCOUNT_TOMBSTONE",
+        "state": "LINK",
+        "refs": ["user_17"],
+        "names": ["user_17"]
+      }
+    ]
+  },
+  "51fa0e6a38f8fa3629ba1b0d0b90b4ed139715956b97bfd09a6f1a6232c15df5": {
+    "file": "marketing_profile_console.png",
+    "kind": "marketing_console",
+    "facts": [
+      {
+        "resource_id": "marketing_001",
+        "system": "marketing_platform",
+        "category": "MARKETING_PROFILE",
+        "state": "PRESENT",
+        "emails": ["sj.park@naver.com"],
+        "phones": ["+82 10-5837-9451"],
+        "names": ["Soo-jin Park"]
+      }
+    ]
+  },
+  "96e9a191380c29b9e0ab997007268c4cd6353cb6721ebd1ed4a32599d8d37e04": {
+    "file": "object_storage_browser_20260213.png",
+    "kind": "object_storage_console",
+    "facts": []
+  },
+  "75afdb0ae53a4510c83399a70d88073cb4fb2747454095756e4ddad1a8c70605": {
+    "file": "search_index_inspector_20260901.png",
+    "kind": "search_console",
+    "facts": [
+      {
+        "resource_id": "search_428",
+        "system": "search_service",
+        "category": "SEARCH_INDEX_ENTRY",
+        "state": "PRESENT",
+        "refs": ["user_13"],
+        "emails": ["g.silva76@gmail.com"],
+        "names": ["Gabriel Silva"]
+      }
+    ]
+  },
+  "ca59f693f4e7002466b3fdeaf1bb6763618770963dd811b60003772d07b4b03b": {
+    "file": "security_audit_explorer_20260905.png",
+    "kind": "audit_console",
+    "facts": [
+      {
+        "resource_id": "audit_record_003",
+        "system": "security_service",
+        "category": "SECURITY_AUDIT_LOG",
+        "state": "RETAINED",
+        "refs": ["user_03"]
+      },
+      {
+        "resource_id": "audit_record_002",
+        "system": "security_service",
+        "category": "SECURITY_AUDIT_LOG",
+        "state": "RETAINED",
+        "refs": ["user_03"]
+      },
+      {
+        "resource_id": "audit_record_001",
+        "system": "security_service",
+        "category": "SECURITY_AUDIT_LOG",
+        "state": "RETAINED",
+        "refs": ["user_03"]
+      },
+      {
+        "resource_id": "audit_record_006",
+        "system": "security_service",
+        "category": "SECURITY_AUDIT_LOG",
+        "state": "RETAINED",
+        "refs": ["user_03"]
+      },
+      {
+        "resource_id": "audit_record_005",
+        "system": "security_service",
+        "category": "SECURITY_AUDIT_LOG",
+        "state": "RETAINED",
+        "refs": ["user_03"]
+      },
+      {
+        "resource_id": "audit_record_004",
+        "system": "security_service",
+        "category": "SECURITY_AUDIT_LOG",
+        "state": "RETAINED",
+        "refs": ["user_03"]
+      }
+    ]
+  },
+  "542b7aec17e6b2f38827896e7eb52c70e4bfaaca22433621be1f80f54884e944": {
+    "file": "support_ticket_console_20260524.png",
+    "kind": "support_console",
+    "facts": [
+      {
+        "resource_id": "support_1034",
+        "system": "support_platform",
+        "category": "SUPPORT_MESSAGE",
+        "state": "PRESENT",
+        "refs": ["user_22"],
+        "emails": ["kagyeman8947@fastmail.com"],
+        "names": ["Kofi Agyeman"]
+      }
+    ]
+  }
+}

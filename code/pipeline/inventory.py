@@ -144,11 +144,7 @@ class InventoryBuilder:
             # A bundle exported later is admitted only when it is the *only*
             # record of the resource, and then only through its inner
             # point-in-time snapshot.
-            in_window = [pair for pair in states if id(pair[0]) in timely]
-            pool = in_window or [
-                pair for pair in states
-                if self.index.file_captured_at.get(pair[0].evidence_id, "") > audit_at
-            ]
+            pool = [pair for pair in states if id(pair[0]) in timely]
             if not pool:
                 continue
             pool.sort(key=lambda pair: (pair[0].observed_at, pair[0].evidence_id))
@@ -213,6 +209,16 @@ class InventoryBuilder:
                     if not account.evidence_id:
                         account.evidence_id = coverage.evidence_id
                         account.observed_at = coverage.observed_at
+
+        # An id guessed from the naming convention is only usable when a
+        # snapshot inside the audit window actually covers the profile table
+        # and omits the id: that omission is the evidence.  Without it the
+        # guess is unfalsifiable, so drop it rather than cite nothing.
+        account = inv.resources.get(inv.account_resource or "")
+        if account is not None and account.kind == "name_derived" and not account.evidence_id:
+            inv.resources.pop(account.resource_id, None)
+            inv.account_resource = None
+            inv.notes.append("account_by_naming_dropped")
 
         return inv
 

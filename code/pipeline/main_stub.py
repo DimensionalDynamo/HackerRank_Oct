@@ -15,6 +15,7 @@ from .inventory import InventoryBuilder
 from .model import CaseResult
 from .planner import Planner
 from .policy import Policy
+from .serialize import case_sort_key
 
 
 def run_requests(request_file: str,
@@ -27,7 +28,7 @@ def run_requests(request_file: str,
     planner = Planner(Policy())
 
     results: List[CaseResult] = []
-    for request in sorted(requests, key=lambda r: r.case_id):
+    for request in sorted(requests, key=lambda r: case_sort_key(r.case_id)):
         decision = classify(request.request_text)
         if not decision.authorises_deletion:
             results.append(CaseResult(request.case_id, "NOT_APPLICABLE", ()))
