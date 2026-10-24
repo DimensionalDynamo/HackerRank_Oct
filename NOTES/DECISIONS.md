@@ -77,3 +77,17 @@ No OCR is available in this environment (see `NOTES/TODO.md`); the eleven PNG
 consoles were read visually and recorded in
 `code/pipeline/parsers/image_transcripts.json`, with the hash of each file, so a
 changed image invalidates the transcript rather than silently misreporting.
+
+## D10 — Cases whose only attributable records are retained ones
+74 of the 508 deletion-authorised cases attribute nothing except a
+`SECURITY_AUDIT_LOG` or `LEGAL_HOLD_RECORD` for the subject (e.g. an
+`account_deletion_reviewed` event with `subject_reference=user_X`).  **Chosen:**
+`COMPLETE`, verified by `VERIFY_RECORD_PRESENT`.  **Reasoning:** the retained
+trail is itself evidence the deletion workflow ran against this subject, no
+snapshot inside the window shows any deletable copy, and the format cannot
+express the alternative — an `INCOMPLETE` row must name a finding and a
+remediation target, and no resource id can be named here without inventing one.
+**Rejected:** `INCOMPLETE,[]` for these, which would assert non-completion
+without a single named record.  **Unaudited:** the sample contains no case of
+this shape, so this rule cannot be validated against the labels; it is recorded
+here and in the evaluation report's "what could not be verified" section.

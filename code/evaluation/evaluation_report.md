@@ -79,8 +79,9 @@ wrote /home/user/HackerRank_Oct/output.csv rows=518 COMPLETE=172 INCOMPLETE=336 
   FINDING or a COMPLETE-case VERIFICATION; the rest are remediation / future
   checks, which the specification requires to have an empty `evidence_id`.
   506 of 518 rows (97.7 %) cite at least one evidence id.
-* 12 rows are `INCOMPLETE,[]`: the request authorises deletion but no record
-  could be attributed inside the audit window (see §4).
+* 2 rows are `INCOMPLETE,[]` — `case_168` and `case_288`: the request
+  authorises deletion but no record could be attributed inside the audit window
+  (see §4). The other ten `[]` rows are the `NOT_APPLICABLE` ones, as required.
 * Determinism: three consecutive runs are byte-identical
   (`sha256 d24010fe2146870073052b20ecda5b3a881136254b994dfe8818d868289b6393`),
   and a run with `pypdf` import-blocked produces the identical file.
@@ -173,7 +174,8 @@ violates "COMPLETE ⇒ verification steps with evidence" and repeats exactly the
 failure the challenge describes. They now emit `INCOMPLETE` with an empty step
 list (a deletion *was* requested, so `NOT_APPLICABLE` would be false, and no
 verification can be cited, so `COMPLETE` is unavailable). Contract violations:
-9 → 0.
+9 → 0. After the screenshot transcripts landed, only two rows
+(`case_168`, `case_288`) still have no attributable record at all.
 
 **F6 — A hallucinated account id (fixed).** A naming-convention guess
 (`user_04` → `account_004`) once produced a COMPLETE step with an empty
@@ -217,11 +219,18 @@ why it needed a custom case rather than a metric.
 ## 5. What could not be verified
 
 * Whether a canonical answer expects `INCOMPLETE,[]` or a `COMPLETE` proof for
-  the 12 zero-resource rows; the sample contains no such case. The choice is
+  the 2 zero-resource rows (`case_168`, `case_288`); the sample contains no such
+  case. The choice is
   argued from the specification (a COMPLETE row must cite a verification step)
   and from the challenge's own premise.
 * The four PDFs' contribution: with `pypdf` blocked the output is byte-identical,
   so the PDF identity links are redundant on this dataset (kept for robustness).
+* The 74 cases whose only attributable records are retained ones
+  (`SECURITY_AUDIT_LOG`, `LEGAL_HOLD_RECORD`) are reported `COMPLETE`. No sample
+  case has this shape, so the choice is argued from the specification and from
+  the fact that `INCOMPLETE` requires a named finding (see NOTES/DECISIONS.md
+  D10) rather than measured. This is the largest single unvalidated assumption
+  in the submission: it governs 74 of 518 rows.
 * Whether the hidden grader scores the exact `state` spelling for
   `REPORT_ACTIVE_DATA_FLOW` (`ACTIVE`) — the sample has three such steps and all
   match.

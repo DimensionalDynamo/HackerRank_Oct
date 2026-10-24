@@ -9,8 +9,8 @@
 - [x] Contract validator in `serialize.py`; 0 violations on the 518 rows.
 - [x] Golden-sample scorer, six custom reasoning cases, 37 unit tests.
 - [x] Determinism: three runs byte-identical; identical with `pypdf` absent.
-- [x] Report the 12 zero-resource rows as `INCOMPLETE,[]` instead of a fake
-      `COMPLETE,[]`.
+- [x] Report the zero-resource rows as `INCOMPLETE,[]` instead of a fake
+      `COMPLETE,[]` (2 rows remain: `case_168`, `case_288`).
 - [x] Image transcripts for the eleven console screenshots (SHA-256 keyed).
 
 ## Open, with why
@@ -29,7 +29,7 @@
       `pytesseract`, no `easyocr`). Images are transcribed into a hashed cache
       instead. If an OCR engine becomes available, `imagedoc.py` could fall back
       to it for uncached images.
-- [ ] **`INCOMPLETE,[]` vs `COMPLETE` proof for the 12 zero-resource rows.** The
+- [ ] **`INCOMPLETE,[]` vs `COMPLETE` proof for the 2 zero-resource rows.** The
       sample has no such case, so the choice is argued from the specification
       rather than measured. Revisit only if an organiser clarification appears.
 

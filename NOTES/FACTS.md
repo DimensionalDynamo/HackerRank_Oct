@@ -115,6 +115,11 @@ field (evidence) acc  1.0000  (166/166)
 sequence accuracy     0.4688
 ```
 
-Funnel over the 508 deletion-authorised cases: subject resolved 498, empty
-inventory 10, account resolved 196, audit trail located 300, resources citing a
-file captured after `audit_at` **0**.
+Funnel over the 508 deletion-authorised cases: subject resolved 498, account
+resolved 196, audit trail located 300, resources citing a file captured after
+`audit_at` **0**; after the image transcripts landed, only 2 cases have an empty
+inventory (`case_168`, `case_288`).
+
+Output shape: 518 rows — COMPLETE 172, INCOMPLETE 336, NOT_APPLICABLE 10;
+2459 steps of which 977 carry an `evidence_id` (all FINDING steps and all
+COMPLETE-case VERIFICATION steps); 506/518 rows cite at least one evidence id.
