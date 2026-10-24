@@ -1,4 +1,5 @@
 """Loading of the participant-facing CSV files under dataset/."""
+from __future__ import annotations
 
 import csv
 from dataclasses import dataclass

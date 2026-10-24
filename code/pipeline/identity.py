@@ -5,6 +5,7 @@ historical addresses (recorded in user_audit_log.csv).  A subject's identifier
 bundle is the union of every identifier the person has ever been known by
 inside the supplied data.
 """
+from __future__ import annotations
 
 import re
 from collections import defaultdict

@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Environments and secrets — never commit these
+.env
+.env.*
+.venv/
+venv/
+*.pem
+credentials*
+
+# Packaging output (rebuild with the zip command in README.md)
+# code.zip is intentionally committed: it is a submission artefact.
+
+# OS noise
+.DS_Store
+Thumbs.db

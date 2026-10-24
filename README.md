@@ -22,7 +22,7 @@ python3 code/main.py --dataset sample_deletion_requests.csv --out /tmp/sample.cs
 python3 code/evaluation/evaluate.py     # score against dataset/sample_output.csv
 python3 code/evaluation/evaluate.py --errors   # per-case diff
 python3 code/evaluation/custom_cases.py        # six hand-built reasoning cases
-python3 -m unittest discover -s code/tests     # 46 unit tests
+python3 -m unittest discover -s code/tests     # 50 unit tests
 ```
 
 Requirements: Python 3.9+ and the standard library only for the graded path.
@@ -93,7 +93,7 @@ Technology stack
 | Concurrency | none | the whole 518-case audit takes 2.4 s single-core, so threads would add failure modes for no gain |
 | Persistence | none | each run replays `dataset/` from scratch; no state can drift between runs |
 | Determinism | explicit `case_sort_key`, no clock, no randomness, no network | three consecutive runs are byte-identical; `sha256 d24010fe…` |
-| Testing | `unittest` (46 tests) + a six-case reasoning suite + a golden-sample scorer | all offline and deterministic, so they can run in the grader's environment too |
+| Testing | `unittest` (50 tests) + a six-case reasoning suite + a golden-sample scorer | all offline and deterministic, so they can run in the grader's environment too |
 
 **On the pypdf fallback.** During the final audit the grading sandbox turned out
 to have no `pypdf`, and the old `_pdf_text()` returned `""` when the import
@@ -152,7 +152,7 @@ code/evaluation/evaluate.py     golden-sample scorer (6 metrics, per-case diff)
 code/evaluation/custom_cases.py six reasoning cases + results JSON
 code/evaluation/evaluation_report.md
 code/evaluation/usage_report.md
-code/tests/test_pipeline.py     46 unit / regression tests
+code/tests/test_pipeline.py     50 unit / regression tests
 NOTES/                          working notes: facts, decisions, todo
 ```
 

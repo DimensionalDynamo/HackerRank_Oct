@@ -12,6 +12,7 @@ Reports the four metrics the challenge asks for:
     python3 code/evaluation/evaluate.py            # summary
     python3 code/evaluation/evaluate.py --errors   # per-case diff
 """
+from __future__ import annotations
 
 import argparse
 import csv

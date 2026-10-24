@@ -11,6 +11,7 @@ Transcription covers only the on-screen facts a human would read: the subject
 reference, the customer e-mail, the resource id shown in the header/row, the
 record type, and the state widget (enabled / allowed / redacted ...).
 """
+from __future__ import annotations
 
 import hashlib
 import json

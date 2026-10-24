@@ -6,6 +6,7 @@ retained); for a process category it means a target operating state (flow
 disabled, restore blocked).  This module is the only place that decides
 whether an observed state violates policy.
 """
+from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Dict, List, Optional

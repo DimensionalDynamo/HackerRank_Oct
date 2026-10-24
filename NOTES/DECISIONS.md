@@ -103,3 +103,14 @@ in `requirements.txt` and declaring the environment must have it — a grader is
 not obliged to install anything, and a wrong answer is worse than a loud error.
 **Verified:** byte-identical output with the import installed and blocked, and
 identical extracted facts on all four documents.
+
+## D12 — Refactors are verified from a fresh clone, on the minimum interpreter
+The unused-import cleanup (F9) deleted `from __future__ import annotations` from
+every module because `annotations` matched the "unused name" test. Python 3.11
+did not care; Python 3.9 — the version the README promises — would have failed at
+import with `TypeError: unsupported operand type(s) for |` on
+`EvidenceIndex | None`. **Chosen:** every cleanup is now re-verified by cloning
+the pushed branch into a clean directory and running the pipeline, the tests and
+the stored-output diff there; `__future__` imports are explicitly excluded from
+unused-import analysis. **Rejected:** trusting a green test run in the working
+tree — it cannot see interpreter-version or packaging regressions.

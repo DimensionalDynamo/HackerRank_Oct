@@ -3,6 +3,7 @@
 Keeping this in the package lets the evaluator run exactly the same code path
 as the graded submission (no re-implementation of the pipeline in the tests).
 """
+from __future__ import annotations
 
 from typing import List
 

@@ -1,4 +1,5 @@
 """Turn a resolved inventory into the canonical ordered step list."""
+from __future__ import annotations
 
 from typing import List, Optional, Tuple
 

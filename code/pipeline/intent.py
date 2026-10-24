@@ -12,6 +12,7 @@ scores: destructive intent versus explicit non-deletion intent, with the
 non-deletion markers winning ties because an ambiguous request must never
 authorise irreversible deletion.
 """
+from __future__ import annotations
 
 import re
 import unicodedata

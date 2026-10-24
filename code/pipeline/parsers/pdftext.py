@@ -4,8 +4,8 @@ The four PDF artefacts are business documents (statements, journal extracts,
 retention registers, support attachments).  Reading them used to depend on
 ``pypdf``; when that package was absent the parser silently returned "" and the
 whole run lost its PDF evidence — a quiet 2-point regression on the sample
-(case_07 flipped COMPLETE→INCOMPLETE, three steps and one evidence id
-disappeared).  Grading environments cannot be assumed to have third-party
+(one labelled sample case flipped to the wrong status, three steps and one
+evidence id disappeared).  Grading environments cannot be assumed to have third-party
 packages installed, so this module decodes the same documents with the standard
 library only.
 
@@ -17,6 +17,7 @@ text: extraction that fails raises, and the caller records it in
 ``EvidenceIndex.file_errors`` so a broken artefact is visible rather than
 silently dropped.
 """
+from __future__ import annotations
 
 import base64
 import re
@@ -169,7 +170,8 @@ def _content_streams(raw: bytes) -> List[bytes]:
 
 def extract_text(path: str) -> str:
     """Best-effort plain text of a PDF, standard library only."""
-    raw = open(path, "rb").read()
+    with open(path, "rb") as handle:
+        raw = handle.read()
     if not raw.startswith(b"%PDF"):
         raise ValueError("not a PDF file")
     lines: List[str] = []

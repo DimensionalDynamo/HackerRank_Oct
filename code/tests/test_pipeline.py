@@ -4,6 +4,7 @@ Run from the repository root:
 
     python3 -m unittest discover -s code/tests -v
 """
+from __future__ import annotations
 
 import json
 import sys
@@ -218,6 +219,60 @@ class PdfTextTests(unittest.TestCase):
         index = EvidenceIndex.build()
         self.assertEqual(index.loaded_files, len(dataset.load_evidence_files()))
         self.assertEqual(index.file_errors, [])
+
+
+class SourceHygieneTests(unittest.TestCase):
+    """Guards that catch refactor damage the runtime does not notice."""
+
+    MODULES = sorted((ROOT / "code").rglob("*.py"))
+
+    def test_every_module_imports_future_annotations(self):
+        """Python 3.9 evaluates `X | None` eagerly; the future import is load-bearing."""
+        for path in self.MODULES:
+            src = path.read_text()
+            self.assertIn("from __future__ import annotations", src, str(path))
+
+    def test_future_import_precedes_all_other_statements(self):
+        import ast
+        for path in self.MODULES:
+            tree = ast.parse(path.read_text())
+            body = list(tree.body)
+            index = next((i for i, n in enumerate(body)
+                          if isinstance(n, ast.ImportFrom) and n.module == "__future__"), None)
+            self.assertIsNotNone(index, str(path))
+            allowed = 0
+            if body and isinstance(body[0], ast.Expr) \
+               and isinstance(getattr(body[0], "value", None), ast.Constant) \
+               and isinstance(body[0].value.value, str):
+                allowed = 1
+            self.assertLessEqual(index, allowed, f"{path}: future import must come first")
+
+    def test_no_unused_imports(self):
+        import ast
+        for path in self.MODULES:
+            tree = ast.parse(path.read_text())
+            names = {}
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ImportFrom):
+                    for alias in node.names:
+                        name = alias.asname or alias.name
+                        if name != "annotations":
+                            names[id(alias)] = name
+                elif isinstance(node, ast.Import):
+                    for alias in node.names:
+                        names[id(alias)] = (alias.asname or alias.name).split(".")[0]
+            used = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name)}
+            used |= {n.attr for n in ast.walk(tree) if isinstance(n, ast.Attribute)}
+            dead = sorted(set(names.values()) - used)
+            self.assertEqual(dead, [], f"{path}: unused imports {dead}")
+
+    def test_pipeline_never_mentions_a_case_id(self):
+        """Behaviour must come from rules, never from a case-id lookup."""
+        import re
+        pattern = re.compile(r"\bcase_\d{2,}")
+        for path in (ROOT / "code" / "pipeline").rglob("*.py"):
+            for number, line in enumerate(path.read_text().splitlines(), 1):
+                self.assertIsNone(pattern.search(line), f"{path}:{number}: {line.strip()}")
 
 
 class OutputIntegrityTests(unittest.TestCase):

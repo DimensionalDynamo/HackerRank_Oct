@@ -3,6 +3,7 @@
 Everything here is deliberately plain: frozen dataclasses, tuples and strings so
 that the whole run is deterministic and serialisable.
 """
+from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Dict, FrozenSet, Tuple

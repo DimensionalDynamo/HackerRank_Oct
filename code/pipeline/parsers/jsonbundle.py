@@ -7,6 +7,7 @@ Four shapes occur:
 * ``records`` + ``record_type``/``result`` - audit-ledger style flat export
 * ``records`` + ``collection``             - single-collection export
 """
+from __future__ import annotations
 
 import json
 from typing import Iterable, List, Optional, Tuple

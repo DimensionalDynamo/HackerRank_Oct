@@ -5,6 +5,7 @@ and read the tables back through the catalogue instead of regex-scraping
 VALUES tuples.  That keeps column/type handling honest and turns a malformed
 dump into a clean, reported error rather than silent misparses.
 """
+from __future__ import annotations
 
 import json
 import re

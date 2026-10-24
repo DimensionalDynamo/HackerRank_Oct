@@ -5,6 +5,7 @@ filtered per case by ``observed_at <= audit_at``.  Filtering happens at query
 time, never at load time, because a single file can serve many cases with
 different audit instants.
 """
+from __future__ import annotations
 
 import re
 from collections import defaultdict

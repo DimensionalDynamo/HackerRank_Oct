@@ -7,6 +7,7 @@ least one observation of it carries an identifier from the subject's bundle
 Names are deliberately *not* used: the corpus contains near-duplicate names
 ("Jonas Berg" vs "Jonas Berglund") that would create false attributions.
 """
+from __future__ import annotations
 
 import re
 from collections import defaultdict

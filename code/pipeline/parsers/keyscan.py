@@ -9,6 +9,7 @@ we normalise a line into:
 
 which is what every downstream rule actually needs.
 """
+from __future__ import annotations
 
 import json
 import re

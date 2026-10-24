@@ -5,6 +5,7 @@ journal extracts, retention registers, support attachments).  They do not
 contain deletion verdicts, but they do state which person a resource id
 belongs to, which is exactly the identity-resolution evidence the audit needs.
 """
+from __future__ import annotations
 
 import re
 from typing import List

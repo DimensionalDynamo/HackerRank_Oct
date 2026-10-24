@@ -8,6 +8,7 @@ category/state matrix:
 That is the highest-quality evidence in the whole dataset because the category
 is stated explicitly rather than inferred from a table name.
 """
+from __future__ import annotations
 
 import re
 from typing import List

@@ -8,6 +8,7 @@
 Deterministic: no network, no clock, no randomness.  The same inputs always
 produce a byte-identical output.csv.
 """
+from __future__ import annotations
 
 import argparse
 import sys

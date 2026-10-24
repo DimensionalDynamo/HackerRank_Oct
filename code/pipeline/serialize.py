@@ -1,4 +1,5 @@
 """Output serialisation plus the contract checks the submission must satisfy."""
+from __future__ import annotations
 
 import csv
 from pathlib import Path
@@ -14,10 +15,12 @@ HEADER = ["case_id", "deletion_status", "steps_json"]
 def case_sort_key(case_id: str):
     """Order ``case_N`` numerically, not lexicographically.
 
-    The specification says rows are sorted by ``case_id``; the request file
-    itself runs case_33 … case_550, so 100 must follow 99 rather than lead the
-    file.  A trailing integer is compared numerically, anything else falls back
-    to the plain string so unknown ids still order deterministically.
+    The specification says rows are sorted by ``case_id``, and the request file
+    runs from the low thirties to the mid five-hundreds — so the id with 100 must
+    follow the id with 99 rather than lead the file, which plain string sorting
+    would do.  A trailing integer is therefore compared numerically; anything
+    else falls back to the plain string so unknown ids still order
+    deterministically.
     """
     prefix, _, digits = case_id.rpartition("_")
     if digits.isdigit():

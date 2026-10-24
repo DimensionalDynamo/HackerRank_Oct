@@ -6,6 +6,7 @@ pipe-delimited, Go runtime logs, bracket layout) by normalising each line with
 trace id, because the subject identifier is printed on the "started" line while
 the resource and the observed state are printed on the "completed" line.
 """
+from __future__ import annotations
 
 from typing import Dict, List, Optional
 
