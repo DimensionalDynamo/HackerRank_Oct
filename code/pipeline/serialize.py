@@ -1,8 +1,6 @@
 """Output serialisation plus the contract checks the submission must satisfy."""
-from __future__ import annotations
 
 import csv
-import json
 from pathlib import Path
 from typing import Iterable, List, Sequence
 

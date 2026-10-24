@@ -12,7 +12,6 @@ Reports the four metrics the challenge asks for:
     python3 code/evaluation/evaluate.py            # summary
     python3 code/evaluation/evaluate.py --errors   # per-case diff
 """
-from __future__ import annotations
 
 import argparse
 import csv
@@ -26,7 +25,6 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT / "code"))
 
-from pipeline import serialize                      # noqa: E402
 from pipeline.main_stub import run_requests         # noqa: E402
 
 

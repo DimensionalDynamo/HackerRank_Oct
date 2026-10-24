@@ -6,18 +6,10 @@ pipe-delimited, Go runtime logs, bracket layout) by normalising each line with
 trace id, because the subject identifier is printed on the "started" line while
 the resource and the observed state are printed on the "completed" line.
 """
-from __future__ import annotations
 
-import json
 from typing import Dict, List, Optional
 
-from ..model import (
-    CAT_ANALYTICS, CAT_BACKUP, CAT_EMAIL_LOG, CAT_SEARCH_INDEX,
-    CAT_SECURITY_AUDIT, CAT_SUPPORT_ATTACHMENT, CAT_SUPPORT_MESSAGE,
-    CAT_TOMBSTONE, CAT_USER_EXPORT, CAT_USER_PROFILE,
-    Observation, ST_ABSENT, ST_ANONYMIZED, ST_FLOW_ACTIVE, ST_FLOW_DISABLED,
-    ST_PRESENT, ST_REDACTED, ST_RESTORE_ALLOWED, ST_RESTORE_BLOCKED, ST_RETAINED,
-)
+from ..model import CAT_ANALYTICS, CAT_SECURITY_AUDIT, CAT_SUPPORT_ATTACHMENT, CAT_SUPPORT_MESSAGE, Observation, ST_ABSENT, ST_ANONYMIZED, ST_FLOW_ACTIVE, ST_FLOW_DISABLED, ST_PRESENT, ST_REDACTED, ST_RESTORE_ALLOWED, ST_RESTORE_BLOCKED, ST_RETAINED
 from . import common
 from .keyscan import parse_text
 

@@ -91,3 +91,15 @@ remediation target, and no resource id can be named here without inventing one.
 without a single named record.  **Unaudited:** the sample contains no case of
 this shape, so this rule cannot be validated against the labels; it is recorded
 here and in the evaluation report's "what could not be verified" section.
+
+## D11 — No third-party dependency may silently change the answer
+The grading sandbox had no `pypdf`, and the PDF reader returned `""` on
+`ImportError`. That quietly removed four artefacts and cost one status, three
+steps and one evidence id. **Chosen:** the standard library reader
+(`parsers/pdftext.py`) is the real implementation and `pypdf` is an optional
+accelerator; an artefact that cannot be read is recorded in
+`EvidenceIndex.file_errors` instead of vanishing. **Rejected:** pinning `pypdf`
+in `requirements.txt` and declaring the environment must have it — a grader is
+not obliged to install anything, and a wrong answer is worse than a loud error.
+**Verified:** byte-identical output with the import installed and blocked, and
+identical extracted facts on all four documents.

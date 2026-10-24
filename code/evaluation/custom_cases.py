@@ -8,7 +8,6 @@ dataset changes and keeps the codebase free of case-id lookups.
 
     python3 code/evaluation/custom_cases.py
 """
-from __future__ import annotations
 
 import csv
 import json

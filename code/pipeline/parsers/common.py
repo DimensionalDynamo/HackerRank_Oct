@@ -1,5 +1,4 @@
 """Shared helpers: map evidence vocabulary onto the policy data categories."""
-from __future__ import annotations
 
 import re
 from typing import Optional, Tuple

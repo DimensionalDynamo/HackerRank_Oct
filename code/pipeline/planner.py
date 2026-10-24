@@ -1,13 +1,9 @@
 """Turn a resolved inventory into the canonical ordered step list."""
-from __future__ import annotations
 
 from typing import List, Optional, Tuple
 
 from .inventory import CaseInventory, ResourceState
-from .model import (
-    CaseResult, PHASE_OF_OPERATION, STATE_OF_OPERATION, Step,
-    Finding, Verification,
-)
+from .model import CaseResult, STATE_OF_OPERATION, Step, Finding, Verification
 from .policy import Policy
 
 

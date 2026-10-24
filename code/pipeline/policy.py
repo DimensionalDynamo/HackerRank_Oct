@@ -6,20 +6,12 @@ retained); for a process category it means a target operating state (flow
 disabled, restore blocked).  This module is the only place that decides
 whether an observed state violates policy.
 """
-from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
 from . import dataset
-from .model import (
-    CAT_ANALYTICS, CAT_BACKUP, CAT_CACHE, CAT_EMAIL_LOG, CAT_LEGAL_HOLD,
-    CAT_MARKETING, CAT_SEARCH_INDEX, CAT_SECONDARY_IDENTIFIER,
-    CAT_SECURITY_AUDIT, CAT_SUPPORT_ATTACHMENT, CAT_SUPPORT_MESSAGE,
-    CAT_TELEMETRY, CAT_TOMBSTONE, CAT_USER_EXPORT, CAT_USER_PROFILE,
-    ST_ABSENT, ST_ANONYMIZED, ST_FLOW_ACTIVE, ST_FLOW_DISABLED, ST_PRESENT,
-    ST_REDACTED, ST_RETAINED, ST_RESTORE_ALLOWED, ST_RESTORE_BLOCKED,
-)
+from .model import CAT_ANALYTICS, CAT_BACKUP, CAT_CACHE, CAT_EMAIL_LOG, CAT_LEGAL_HOLD, CAT_MARKETING, CAT_SEARCH_INDEX, CAT_SECONDARY_IDENTIFIER, CAT_SECURITY_AUDIT, CAT_SUPPORT_ATTACHMENT, CAT_SUPPORT_MESSAGE, CAT_TELEMETRY, CAT_TOMBSTONE, CAT_USER_EXPORT, CAT_USER_PROFILE, ST_ABSENT, ST_ANONYMIZED, ST_FLOW_DISABLED, ST_REDACTED, ST_RESTORE_BLOCKED
 
 # category -> the action named in deletion_rules.csv
 _FALLBACK_ACTIONS = {

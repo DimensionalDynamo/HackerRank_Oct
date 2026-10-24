@@ -11,7 +11,6 @@ Transcription covers only the on-screen facts a human would read: the subject
 reference, the customer e-mail, the resource id shown in the header/row, the
 record type, and the state widget (enabled / allowed / redacted ...).
 """
-from __future__ import annotations
 
 import hashlib
 import json
@@ -39,6 +38,11 @@ def load_cache() -> Dict[str, dict]:
         return json.loads(CACHE_PATH.read_text(encoding="utf-8"))
     except Exception:
         return {}
+
+
+def has_transcript(path: str) -> bool:
+    """True when this exact image (by content hash) has been transcribed."""
+    return _sha256(path) in load_cache()
 
 
 def extract(path: str, file_id: str, captured_at: str) -> List[Observation]:

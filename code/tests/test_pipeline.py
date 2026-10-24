@@ -4,7 +4,6 @@ Run from the repository root:
 
     python3 -m unittest discover -s code/tests -v
 """
-from __future__ import annotations
 
 import json
 import sys
@@ -19,12 +18,8 @@ from pipeline.evidence import EvidenceIndex                  # noqa: E402
 from pipeline.identity import IdentityIndex                  # noqa: E402
 from pipeline.intent import classify                         # noqa: E402
 from pipeline.inventory import InventoryBuilder              # noqa: E402
-from pipeline.model import (                                 # noqa: E402
-    OPERATION_ORDER, PHASE_OF_OPERATION, STATE_OF_OPERATION,
-    CaseResult, Observation, Step,
-)
+from pipeline.model import OPERATION_ORDER, PHASE_OF_OPERATION, STATE_OF_OPERATION, CaseResult, Step
 from pipeline.parsers import jsonbundle, logs, pdfdoc, sqlsnap, textdoc  # noqa: E402
-from pipeline.planner import Planner                         # noqa: E402
 from pipeline.policy import Policy                           # noqa: E402
 
 EVIDENCE = ROOT / "dataset" / "evidence"
@@ -175,6 +170,100 @@ class ParserTests(unittest.TestCase):
         self.assertTrue(support)
         self.assertEqual(support[0].category, "SUPPORT_ATTACHMENT")
         self.assertIn("priya.raman@gmail.com", support[0].emails)
+
+
+class PdfTextTests(unittest.TestCase):
+    """The PDFs must be readable without any third-party package.
+
+    Losing them silently is not acceptable: it cost three sample steps and one
+    evidence id before the standard-library extractor existed.
+    """
+
+    DOCUMENTS = EVIDENCE / "documents"
+
+    def test_stdlib_extractor_reads_every_pdf(self):
+        from pipeline.parsers import pdftext
+        for path in sorted(self.DOCUMENTS.glob("*.pdf")):
+            text = pdftext.extract_text(str(path))
+            self.assertGreater(len(text.strip()), 100, f"{path.name} gave no text")
+
+    def test_stdlib_extractor_recovers_the_same_facts_as_pypdf(self):
+        from pipeline.parsers import pdfdoc, pdftext
+        for path in sorted(self.DOCUMENTS.glob("*.pdf")):
+            stdlib = pdftext.extract_text(str(path))
+            try:
+                reference = pdftext.extract_text_via_pypdf(str(path))
+            except Exception:
+                continue                      # pypdf not installed: nothing to compare
+            def facts(text):
+                return (sorted(set(pdfdoc.EMAIL_RE.findall(text))),
+                        sorted(set(pdfdoc.USER_RE.findall(text))),
+                        sorted(set(pdfdoc.RESOURCE_RE.findall(text))),
+                        [m.groups() for m in pdfdoc.HOLD_ROW_RE.finditer(text)])
+            self.assertEqual(facts(stdlib), facts(reference), path.name)
+
+    def test_read_pdf_falls_back_when_pypdf_is_absent(self):
+        from pipeline.parsers import pdftext
+        path = self.DOCUMENTS / "delivery_correction_attachment.pdf"
+
+        original = pdftext.extract_text_via_pypdf
+        pdftext.extract_text_via_pypdf = lambda _p: (_ for _ in ()).throw(ImportError("no pypdf"))
+        try:
+            text = pdftext.read_pdf(str(path))
+        finally:
+            pdftext.extract_text_via_pypdf = original
+        self.assertIn("support_001", text)
+
+    def test_evidence_index_loads_every_artefact(self):
+        index = EvidenceIndex.build()
+        self.assertEqual(index.loaded_files, len(dataset.load_evidence_files()))
+        self.assertEqual(index.file_errors, [])
+
+
+class OutputIntegrityTests(unittest.TestCase):
+    """Checks a reviewer can repeat on the shipped output.csv."""
+
+    @classmethod
+    def setUpClass(cls):
+        import csv as _csv
+        root = ROOT
+        cls.rows = list(_csv.DictReader(open(root / "output.csv")))
+        cls.file_ids = {e.file_id for e in dataset.load_evidence_files()}
+
+    def test_one_row_per_request_sorted_numerically(self):
+        from pipeline.serialize import case_sort_key
+        ids = [r["case_id"] for r in self.rows]
+        self.assertEqual(len(ids), len(set(ids)))
+        self.assertEqual(ids, sorted(ids, key=case_sort_key))
+        expected = {r.case_id for r in dataset.load_requests()}
+        self.assertEqual(set(ids), expected)
+
+    def test_every_step_has_exactly_the_seven_fields(self):
+        expected = {"step_no", "phase", "system_id", "resource_id",
+                    "operation", "state", "evidence_id"}
+        for row in self.rows:
+            for index, step in enumerate(json.loads(row["steps_json"]), start=1):
+                self.assertEqual(set(step), expected, row["case_id"])
+                self.assertEqual(step["step_no"], index, row["case_id"])
+
+    def test_every_cited_evidence_id_exists_in_the_manifest(self):
+        for row in self.rows:
+            for step in json.loads(row["steps_json"]):
+                if step["evidence_id"]:
+                    self.assertIn(step["evidence_id"], self.file_ids, row["case_id"])
+
+    def test_every_cited_resource_is_grounded(self):
+        """No invented ids: each resource must appear in the corpus or a transcript."""
+        corpus = []
+        for path in (ROOT / "dataset").rglob("*"):
+            if path.is_file() and path.suffix.lower() in (".csv", ".log", ".json", ".sql", ".txt"):
+                corpus.append(path.read_text(errors="ignore"))
+        transcripts = (ROOT / "code" / "pipeline" / "parsers" /
+                       "image_transcripts.json").read_text()
+        blob = "\n".join(corpus) + transcripts
+        for row in self.rows:
+            for step in json.loads(row["steps_json"]):
+                self.assertIn(step["resource_id"], blob, row["case_id"])
 
 
 class PolicyTests(unittest.TestCase):

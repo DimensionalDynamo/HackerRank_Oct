@@ -5,20 +5,13 @@ and read the tables back through the catalogue instead of regex-scraping
 VALUES tuples.  That keeps column/type handling honest and turns a malformed
 dump into a clean, reported error rather than silent misparses.
 """
-from __future__ import annotations
 
 import json
 import re
 import sqlite3
-from typing import List, Optional, Tuple
+from typing import List
 
-from ..model import (
-    CAT_ANALYTICS, CAT_SEARCH_INDEX, CAT_SECURITY_AUDIT, CAT_SUPPORT_MESSAGE,
-    CAT_TOMBSTONE, CAT_USER_EXPORT, CAT_USER_PROFILE,
-    Coverage, Observation, ST_ABSENT, ST_ANONYMIZED, ST_FLOW_ACTIVE,
-    ST_FLOW_DISABLED, ST_PRESENT, ST_REDACTED, ST_RETAINED,
-    ST_RESTORE_ALLOWED, ST_RESTORE_BLOCKED,
-)
+from ..model import CAT_ANALYTICS, CAT_SECURITY_AUDIT, CAT_SUPPORT_MESSAGE, CAT_TOMBSTONE, CAT_USER_EXPORT, CAT_USER_PROFILE, Coverage, Observation, ST_ANONYMIZED, ST_FLOW_ACTIVE, ST_FLOW_DISABLED, ST_PRESENT, ST_REDACTED, ST_RETAINED, ST_RESTORE_ALLOWED, ST_RESTORE_BLOCKED
 from . import common
 
 CAPTURE_RE = re.compile(r"Captured at:\s*(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)")
