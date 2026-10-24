@@ -102,6 +102,8 @@ class InventoryBuilder:
     # -- build -------------------------------------------------------------
     def build(self, subject: Subject, audit_at: str) -> CaseInventory:
         inv = CaseInventory(subject=subject)
+        if not self.index.admits(audit_at):
+            return inv          # no usable audit instant: attribute nothing
         # linking pool: everything (identity does not expire)
         observations = self.index.observations_at(audit_at)
         links = self.index.links_at(audit_at)

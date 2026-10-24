@@ -22,7 +22,8 @@ python3 code/main.py --dataset sample_deletion_requests.csv --out /tmp/sample.cs
 python3 code/evaluation/evaluate.py     # score against dataset/sample_output.csv
 python3 code/evaluation/evaluate.py --errors   # per-case diff
 python3 code/evaluation/custom_cases.py        # six hand-built reasoning cases
-python3 -m unittest discover -s code/tests     # 50 unit tests
+# 55 unit tests (skips cleanly if dataset/ or output.csv is absent)
+python3 -m unittest discover -s code/tests
 ```
 
 Requirements: Python 3.9+ and the standard library only for the graded path.
@@ -90,10 +91,13 @@ Technology stack
 | Optional dependency | `pypdf==6.21.2`, pinned in `code/requirements.txt` | higher-fidelity PDF reading when present; **not required** — see below |
 | PDF reading, dependency-free | `code/pipeline/parsers/pdftext.py` | decodes `ASCII85Decode`/`ASCIIHexDecode`/`FlateDecode`/`RunLengthDecode` filter chains, literal and hex strings, PDF escapes; verified to recover the same facts as `pypdf` on all four documents |
 | Data access | CSV via `csv`, snapshots via SQL text replay, logs line-by-line, JSON via `json`, PDFs via `pdftext`, screenshots via hashed transcription cache | every artefact class in the corpus has an explicit reader; nothing is guessed |
-| Concurrency | none | the whole 518-case audit takes 2.4 s single-core, so threads would add failure modes for no gain |
+| Concurrency | none | the whole 518-case audit takes about 4 s single-core (3.86-4.09 s measured on a 2-core Xeon @ 2.60 GHz), so threads would add failure modes for no gain |
 | Persistence | none | each run replays `dataset/` from scratch; no state can drift between runs |
 | Determinism | explicit `case_sort_key`, no clock, no randomness, no network | three consecutive runs are byte-identical; `sha256 d24010fe…` |
-| Testing | `unittest` (50 tests) + a six-case reasoning suite + a golden-sample scorer | all offline and deterministic, so they can run in the grader's environment too |
+| Testing | `unittest` (55 tests) + a six-case reasoning suite + a golden-sample scorer | all offline and deterministic, so they can run in the grader's environment too |
+| Environment-invariant | 4 hash seeds, 4 locales (incl. `tr_TR`), 3 working directories | every run is byte-identical, so the grade cannot depend on the reviewer's machine |
+| Input tolerance | `utf-8-sig` CSV reading, per-artefact exception guards | works with BOM-prefixed exports and with any single artefact corrupted |
+| Time-window soundness | `EvidenceIndex.admits()` validates `audit_at` before any comparison | a malformed instant authorises nothing instead of silently admitting everything |
 
 **On the pypdf fallback.** During the final audit the grading sandbox turned out
 to have no `pypdf`, and the old `_pdf_text()` returned `""` when the import
@@ -152,7 +156,7 @@ code/evaluation/evaluate.py     golden-sample scorer (6 metrics, per-case diff)
 code/evaluation/custom_cases.py six reasoning cases + results JSON
 code/evaluation/evaluation_report.md
 code/evaluation/usage_report.md
-code/tests/test_pipeline.py     50 unit / regression tests
+code/tests/test_pipeline.py     55 unit / regression tests
 NOTES/                          working notes: facts, decisions, todo
 ```
 

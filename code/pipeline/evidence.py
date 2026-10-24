@@ -8,6 +8,10 @@ different audit instants.
 from __future__ import annotations
 
 import re
+
+TIMESTAMP_RE = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\Z")
+
+import re
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -154,6 +158,17 @@ class EvidenceIndex:
             ))
 
     # -- queries ------------------------------------------------------------
+    @staticmethod
+    def admits(audit_at: str) -> bool:
+        """Is ``audit_at`` a usable instant?
+
+        The window test is a string comparison, so arbitrary text can compare
+        *greater* than every real timestamp (``"2026-..." <= "not-a-date"`` is
+        true) and would silently admit the whole corpus.  A malformed instant
+        must authorise nothing.
+        """
+        return bool(TIMESTAMP_RE.match(audit_at or ""))
+
     def _usable(self, observation: Observation, audit_at: str) -> bool:
         """Can this observation testify about the state at ``audit_at``?
 
@@ -167,6 +182,8 @@ class EvidenceIndex:
         change over time, so linking uses every artefact (see
         ``all_observations``); only state reconstruction is time-gated.
         """
+        if not self.admits(audit_at):
+            return False
         captured = self.file_captured_at.get(observation.evidence_id)
         if captured is not None and captured > audit_at:
             return False
@@ -194,11 +211,15 @@ class EvidenceIndex:
         ``audit_at`` *and* the artefact itself must have been captured by then,
         otherwise a later export could testify about an earlier audit.
         """
+        if not self.admits(audit_at):
+            return []
         return [c for c in self.coverages
                 if c.observed_at <= audit_at and c.category == category
                 and self.file_captured_at.get(c.evidence_id, "") <= audit_at]
 
     def treatment_for(self, resource_id: str, audit_at: str) -> Optional[TreatmentHint]:
+        if not self.admits(audit_at):
+            return None
         hints = [h for h in self.treatments.get(resource_id, ()) if h.event_time <= audit_at]
         if not hints:
             return None

@@ -17,7 +17,7 @@ def dataset_dir() -> Path:
 
 def _read_csv(name: str) -> List[dict]:
     path = dataset_dir() / name
-    with path.open(newline="", encoding="utf-8") as fh:
+    with path.open(newline="", encoding="utf-8-sig") as fh:
         return list(csv.DictReader(fh))
 
 
