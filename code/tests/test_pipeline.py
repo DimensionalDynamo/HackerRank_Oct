@@ -282,7 +282,8 @@ class OutputIntegrityTests(unittest.TestCase):
     def setUpClass(cls):
         import csv as _csv
         root = ROOT
-        cls.rows = list(_csv.DictReader(open(root / "output.csv")))
+        with (root / "output.csv").open(newline="", encoding="utf-8") as handle:
+            cls.rows = list(_csv.DictReader(handle))
         cls.file_ids = {e.file_id for e in dataset.load_evidence_files()}
 
     def test_one_row_per_request_sorted_numerically(self):
