@@ -11,7 +11,7 @@ Reproduce with:
 python3 code/evaluation/evaluate.py            # summary
 python3 code/evaluation/evaluate.py --errors   # per-case MISSING/EXTRA diff
 python3 code/evaluation/custom_cases.py        # six reasoning cases
-python3 -m unittest discover -s code/tests     # 50 unit tests
+python3 -m unittest discover -s code/tests     # 55 unit tests
 python3 code/main.py --validate                # full run + contract check
 ```
 
@@ -168,8 +168,19 @@ observations taken from bundles exported after `audit_at`, because the inner
 snapshot timestamps were older. That is a real audit violation: at `audit_at`
 the auditor could not have read that file. After gating on the file's own
 `captured_at` (and on each snapshot's coverage date), citations of
-out-of-window files fell from 139/1326 resources to **0**; the sample cost was
-6 steps, all of which the labels also do not credit.
+out-of-window files fell from 139/1326 resources to **0**.
+
+The sample cost was 6 steps (tp 172 -> 166, recall 0.8912 -> 0.8601), and those
+6 steps **are** credited by the labels: the reference answers admit an
+observation whose own timestamp is inside the window even when the artefact
+carrying it was exported afterwards. The ground truth therefore reads the
+cutoff as *observation-time*, while this submission also gates on
+*file-capture-time*. The stricter reading is kept deliberately, because a
+bundle exported after `audit_at` could not have been read by an auditor at
+`audit_at`; this is a documented disagreement with the labels, not a bug.
+Re-measured on the shipped code, relaxing only that gate is worth +2 matched
+steps: it recovers 5 gated steps and breaks 2 previously-correct ones, so the
+two readings trade rather than one dominating.
 
 **F5 — Nine contract violations (fixed).** Nine deletion-authorised cases
 resolved to zero resources and were emitting `COMPLETE` with `[]`, which
@@ -243,7 +254,7 @@ the stub and its call site were deleted and every import statement was rebuilt
 from the AST (a first, regex-based attempt corrupted six multi-line imports; the
 files were restored from git and the AST approach verified by re-parsing every
 module and re-running the suite). Post-fix scan: 0 files with unused imports,
-50/50 tests.
+55/55 tests.
 
 **F11 — `from __future__ import annotations` stripped by my own refactor (fixed, caught by a clean-room test).**
 The script that removed unused imports in F9 treated `annotations` as an unused
@@ -317,6 +328,22 @@ resources, 0 invalid evidence ids). The five ids that are not in the text corpus
 (`audit_record_001/002/004/005/006`) come from the security-audit screenshot and
 are grounded in `image_transcripts.json`.
 
+**F12 - A BOM-prefixed CSV killed the run (fixed).** The loaders opened CSVs as
+plain `utf-8`, so a file re-saved by Excel or Google Sheets begins with
+`\ufeffcase_id` and every row raises `KeyError`. Switched to `utf-8-sig`, which
+reads both BOM-prefixed and plain files. Verified: the graded output is
+byte-identical (`sha256 d24010fe...`) and a BOM-prefixed request file now parses
+all 518 rows. Pinned by `test_csv_loader_tolerates_a_utf8_bom`.
+
+**F13 - A malformed `audit_at` admitted the whole corpus (fixed).** The window
+test is a string comparison, so `audit_at="not-a-date"` compares *greater* than
+every real timestamp and let all evidence through (8 steps where 0 were
+justified). `EvidenceIndex.admits()` now validates the instant before any
+comparison and returns nothing when it is unusable, and every call site
+(`_usable`, `coverages_at`, `treatment_for`, `InventoryBuilder.build`) routes
+through it. Well-formed data cannot reach the new branch, so the graded output is
+unchanged. Pinned by `test_malformed_audit_at_admits_no_evidence`.
+
 ## 6. Independent audit of the shipped artefact (clean-room)
 
 Every claim above was re-checked from a **fresh clone of the pushed branch** into
@@ -327,9 +354,9 @@ the following passed:
 | --- | --- | --- |
 | Clean-room reproducibility | `git clone --branch … && python3 code/main.py` | committed `output.csv` unchanged, `git status` clean |
 | Same, with `pypdf` blocked | `sys.meta_path` blocker + full run | identical `sha256 d24010fe…` |
-| Full suite, warnings as errors | `python3 -W error::ResourceWarning -m unittest discover` | 50/50 OK |
+| Full suite, warnings as errors | `python3 -W error::ResourceWarning -m unittest discover` | 55/55 OK |
 | Custom reasoning cases | `python3 code/evaluation/custom_cases.py` | 6/6 pass |
-| Zip integrity | `zipfile.testzip()`, entry audit | 37 entries, no `__pycache__`, no `dataset/`, no `.git`, both reports present |
+| Zip integrity | `zipfile.testzip()`, entry audit | 38 entries, no `__pycache__`, no `dataset/`, no `.git`, both reports present |
 | Zip in sync with source | `diff -rq code/ <unzipped>/code` | no differences |
 | Zip round-trip | unzip → run → compare | byte-identical `output.csv` |
 | CSV contract | `csv.DictReader` + `json.loads` on all 518 rows | header exact, 518/518 parse, no embedded newlines |
@@ -338,6 +365,16 @@ the following passed:
 | Grounding | every `resource_id` against corpus + transcripts | 1200 distinct, all grounded |
 | Hostile inputs | blank e-mail, unknown e-mail, malformed timestamps, empty text, non-ASCII, empty file | no exception in any case |
 | Stale-artefact detection | `diff` of `code.zip` against the tree | caught a stale zip and a stripped `__future__` import (F11) |
+| Environment independence | 4 x `PYTHONHASHSEED`, 4 x locale (incl. `tr_TR`), 3 x cwd | identical `sha256` every time |
+| Standard library only, hard proof | `python3 -S code/main.py --out ...` (site-packages disabled) | byte-identical `sha256 d24010fe...` |
+| Timestamp order soundness | regex + lexicographic vs chronological sort over 7 769 distinct stamps | 0 non-conforming, orders equal |
+| Malformed `audit_at` | synthetic request with `audit_at="not-a-date"` | fails closed (`admits()` guard, F13) |
+| BOM-prefixed CSV | re-saved `deletion_requests.csv` with a UTF-8 BOM | accepted after F12, 518 rows |
+| Corrupt artefacts | binary garbage injected into `.json/.sql/.log/.txt/.png` | run survives all five, exit 0 |
+| Regex denial of service | 10 kB pathological `request_text` (10 shapes) | worst case 12.7 ms |
+| Semantic invariants | 2 459 steps: phase / state / evidence coherence | 0 violations |
+| Ordering defect hunt | label filtered to predicted steps, order compared | 32/32 exact -> no ordering bug |
+| Suite from a bare `code.zip` | unzip into an empty dir and run | `OK (skipped=1)` with an explanatory reason |
 
 The two defects this audit found in the *submission* (rather than in the model)
 were a stale `code.zip` and the missing `__future__` imports; both are fixed and

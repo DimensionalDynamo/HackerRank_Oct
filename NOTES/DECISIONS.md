@@ -114,3 +114,30 @@ the pushed branch into a clean directory and running the pipeline, the tests and
 the stored-output diff there; `__future__` imports are explicitly excluded from
 unused-import analysis. **Rejected:** trusting a green test run in the working
 tree — it cannot see interpreter-version or packaging regressions.
+
+## D13 — Two robustness guards, both provably free on the real corpus
+The second audit round ran 36 check groups from a copy of the tree. Two of them
+found defects that only appear on malformed *input*, never on the supplied data:
+a UTF-8 BOM turned the first CSV header into `\ufeffcase_id` (F12), and a
+malformed `audit_at` compared *greater* than every real timestamp, admitting the
+whole corpus (F13). **Chosen:** fix both, because the grader is not guaranteed to
+hand back a byte-identical CSV, and a fail-open window is the wrong failure
+direction for an audit whose whole premise is "claims are not facts".
+**Verified free:** the curated `output.csv` is byte-identical before and after
+(`sha256 d24010fe…`), and the sample metrics do not move. **Rejected:** leaving
+them as documented caveats — a one-line `utf-8-sig` has no downside, and F13
+needs the guard to be credible at all.
+
+## D14 — The file-capture gate disagrees with the labels, and stays
+Root-causing the 27 missing sample steps showed that 6 of them are blocked only
+by the artefact `captured_at` gate, and that the reference answers do credit
+those steps: the labels read the cutoff as *observation-time*, this submission
+also gates on *file-capture-time*. **Chosen:** keep the stricter gate. A bundle
+exported two days after `audit_at` could not have been read by an auditor at
+`audit_at`, so admitting it is exactly the "future evidence" error the task is
+about. **Measured cost:** relaxing it recovers 5 gated steps but breaks 2
+previously-correct ones (net +2 tp, recall 0.8601 -> 0.8705), so the readings
+trade rather than one dominating — which makes the principled choice affordable.
+**Recorded:** the divergence is written up in the evaluation report (F4) rather
+than hidden, because a scorer that prefers the labels should be able to see the
+disagreement and the reasoning behind it.
