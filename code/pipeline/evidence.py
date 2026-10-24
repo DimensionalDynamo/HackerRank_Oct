@@ -11,11 +11,12 @@ import re
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from . import dataset
 from .model import Coverage, Observation, ST_LINK
 from .parsers import jsonbundle, logs, pdfdoc, sqlsnap, textdoc
+from .parsers import imagedoc
 from .parsers.imagedoc import extract as image_extract
 
 LINK_DETAIL_RE = re.compile(
@@ -92,9 +93,20 @@ class EvidenceIndex:
                 else:
                     obs, scopes = textdoc.extract(text, entry.file_id, entry.captured_at)
             elif suffix == ".pdf":
-                obs, scopes = pdfdoc.extract(str(path), entry.file_id, entry.captured_at), []
+                # A PDF that cannot be read is recorded, never skipped in
+                # silence: losing one artefact quietly changes verdicts.
+                try:
+                    obs, scopes = pdfdoc.extract(
+                        str(path), entry.file_id, entry.captured_at), []
+                except Exception as exc:
+                    index.file_errors.append(
+                        f"unreadable:{entry.file_path}:{type(exc).__name__}")
+                    obs, scopes = [], []
             elif suffix == ".png":
                 obs, scopes = image_extract(str(path), entry.file_id, entry.captured_at), []
+                if not imagedoc.has_transcript(str(path)):
+                    index.file_errors.append(
+                        f"untranscribed:{entry.file_path}")
             else:
                 obs, scopes = [], []
 

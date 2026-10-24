@@ -41,6 +41,11 @@ def load_cache() -> Dict[str, dict]:
         return {}
 
 
+def has_transcript(path: str) -> bool:
+    """True when this exact image (by content hash) has been transcribed."""
+    return _sha256(path) in load_cache()
+
+
 def extract(path: str, file_id: str, captured_at: str) -> List[Observation]:
     cache = load_cache()
     entry = cache.get(_sha256(path))

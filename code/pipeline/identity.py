@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
-from dataclasses import dataclass
 from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 from . import dataset

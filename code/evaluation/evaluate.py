@@ -26,7 +26,6 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT / "code"))
 
-from pipeline import serialize                      # noqa: E402
 from pipeline.main_stub import run_requests         # noqa: E402
 
 

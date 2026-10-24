@@ -12,7 +12,7 @@ from typing import List
 
 from ..model import (CAT_LEGAL_HOLD, CAT_SUPPORT_ATTACHMENT,
                      CAT_SUPPORT_MESSAGE, Observation, ST_LINK, ST_PRESENT)
-from . import common
+from . import common, pdftext
 
 EMAIL_RE = re.compile(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}")
 RESOURCE_RE = re.compile(
@@ -25,15 +25,15 @@ HOLD_ROW_RE = re.compile(r"\|\s*(user_\d+)\s*\|.*?Retain until ([0-9]{2} [A-Z][a
 
 
 def _pdf_text(path: str) -> str:
-    try:
-        from pypdf import PdfReader  # type: ignore
-    except Exception:
-        return ""
-    try:
-        reader = PdfReader(path)
-        return "\n".join((page.extract_text() or "") for page in reader.pages)
-    except Exception:
-        return ""
+    """Text of one PDF.
+
+    ``pypdf`` is used when it is installed because it handles exotic input, but
+    it is **not** required: ``pdftext`` decodes the same documents with the
+    standard library.  Returning an empty string here would silently discard a
+    whole artefact (that bug cost three sample steps and one evidence id), so a
+    document that cannot be read raises instead.
+    """
+    return pdftext.read_pdf(path)
 
 
 def extract_text_document(text: str, file_id: str, captured_at: str):

@@ -3,8 +3,9 @@
 # Nothing here is required to produce output.csv: the graded path runs on the
 # Python 3.9+ standard library alone (no network, no API keys, no model calls).
 #
-# pypdf is optional and only improves coverage of the four PDF artefacts under
-# dataset/evidence/documents/. Without it the PDF parser returns no
-# observations instead of failing, and the rest of the pipeline is unchanged.
+# pypdf is OPTIONAL. The standard-library reader in
+# code/pipeline/parsers/pdftext.py decodes the four PDF artefacts on its own and
+# is verified to recover identical facts; output.csv is byte-identical with and
+# without pypdf installed. Install it only as a higher-fidelity accelerator.
 
 pypdf==6.21.2

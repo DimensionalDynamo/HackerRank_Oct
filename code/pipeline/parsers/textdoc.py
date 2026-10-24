@@ -11,14 +11,9 @@ is stated explicitly rather than inferred from a table name.
 from __future__ import annotations
 
 import re
-from typing import List, Tuple
+from typing import List
 
-from ..model import (
-    CAT_BACKUP, CAT_SEARCH_INDEX, CAT_SECURITY_AUDIT,
-    Coverage, Observation, ST_ABSENT, ST_ANONYMIZED, ST_FLOW_ACTIVE,
-    ST_FLOW_DISABLED, ST_PRESENT, ST_REDACTED, ST_RETAINED,
-    ST_RESTORE_ALLOWED, ST_RESTORE_BLOCKED,
-)
+from ..model import CAT_SECURITY_AUDIT, Coverage, Observation, ST_ABSENT, ST_ANONYMIZED, ST_FLOW_ACTIVE, ST_FLOW_DISABLED, ST_PRESENT, ST_REDACTED, ST_RETAINED, ST_RESTORE_ALLOWED, ST_RESTORE_BLOCKED
 from . import common
 
 ROW_RE = re.compile(

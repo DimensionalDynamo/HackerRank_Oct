@@ -14,14 +14,9 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Tuple
 
-from . import dataset
 from .evidence import EvidenceIndex
 from .identity import normalise_hash, normalise_phone
-from .model import (
-    CAT_ANALYTICS, CAT_SECURITY_AUDIT, CAT_SUPPORT_ATTACHMENT,
-    CAT_SUPPORT_MESSAGE, CAT_TOMBSTONE, CAT_USER_PROFILE,
-    Coverage, Observation, ST_ABSENT, ST_PRESENT, Subject,
-)
+from .model import CAT_USER_PROFILE, Coverage, Observation, ST_ABSENT, Subject
 
 ACCOUNT_RE = re.compile(r"^account_(\d+)$")
 

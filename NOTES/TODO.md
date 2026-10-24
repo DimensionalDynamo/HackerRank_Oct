@@ -12,6 +12,14 @@
 - [x] Report the zero-resource rows as `INCOMPLETE,[]` instead of a fake
       `COMPLETE,[]` (2 rows remain: `case_168`, `case_288`).
 - [x] Image transcripts for the eleven console screenshots (SHA-256 keyed).
+- [x] **PDF reading without `pypdf`** (`parsers/pdftext.py`) — the sandbox had no
+      `pypdf`, and the old code silently produced no PDF evidence. Output is now
+      byte-identical with and without it; unreadable artefacts are recorded.
+- [x] Dead `_unclaimed_absent_account` stub and 16 files of unused imports removed.
+- [x] `code/__init__.py` added so `python3 -m code.main` works.
+- [x] `log.txt` rewritten with per-turn entries; README gained technology and
+      AI-agent sections.
+- [x] Regression tests for PDF extraction and evidence-index completeness (42 total).
 
 ## Open, with why
 
@@ -28,7 +36,12 @@
 - [ ] **OCR.** No engine in the runtime (checked: no `tesseract`, no
       `pytesseract`, no `easyocr`). Images are transcribed into a hashed cache
       instead. If an OCR engine becomes available, `imagedoc.py` could fall back
-      to it for uncached images.
+      to it for uncached images. Unlike the PDFs this cannot be solved with the
+      standard library — recognising pixels is a different problem — but the
+      cache makes the behaviour explicit and hash-verified rather than silent.
+- [ ] **`log.txt` model field.** The runtime exposes no model identifier, so the
+      log records `model=not-exposed-by-runtime` with a note. If the harness ever
+      exposes the value, replacing it is a one-line change in every entry.
 - [ ] **`INCOMPLETE,[]` vs `COMPLETE` proof for the 2 zero-resource rows.** The
       sample has no such case, so the choice is argued from the specification
       rather than measured. Revisit only if an organiser clarification appears.

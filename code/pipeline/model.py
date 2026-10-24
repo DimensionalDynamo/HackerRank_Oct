@@ -5,7 +5,7 @@ that the whole run is deterministic and serialisable.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Dict, FrozenSet, Tuple
 
 # ---------------------------------------------------------------------------
